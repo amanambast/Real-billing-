@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart Billing Pro</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#172033}
+header{background:#102a43;color:white;padding:20px}
+header h1{margin:0}
+nav{display:flex;gap:8px;flex-wrap:wrap;background:white;padding:12px}
+button{border:0;padding:11px 14px;border-radius:7px;background:#087f8c;color:white;cursor:pointer}
+nav button{background:#e2e8f0;color:#172033}
+main{max-width:1100px;margin:auto;padding:16px}
+.panel{background:white;padding:18px;border-radius:12px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+input,select{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:7px;margin:5px 0 12px}
+label{font-size:14px;font-weight:bold}
+table{border-collapse:collapse;width:100%;min-width:500px}
+th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}
+th{background:#eaf2f8}
+.tablewrap{overflow-x:auto}
+.hidden{display:none}
+.stat{background:#e6fffb;padding:16px;border-radius:10px}
+.stat strong{display:block;font-size:23px;margin-top:8px}
+#notice{padding:8px;color:#087f8c}
+@media print{header,nav,.no-print{display:none!important}body{background:white}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🧾 Smart Billing Pro</h1>
+<p>बिलिंग | ग्राहक हिस्ट्री | कर्मचारी रिकॉर्ड | स्टॉक</p>
+</header>
+
+<nav>
+<button onclick="page('home')">डैशबोर्ड</button>
+<button onclick="page('billing')">नया बिल</button>
+<button onclick="page('products')">प्रोडक्ट</button>
+<button onclick="page('customers')">ग्राहक हिस्ट्री</button>
+<button onclick="page('reports')">बिक्री रिपोर्ट</button>
+<button onclick="page('activity')">कर्मचारी गतिविधियाँ</button>
+</nav>
+
+<main>
+<div id="notice"></div>
+
+<section id="home" class="screen">
+<div class="panel">
+<h2>दुकान का डैशबोर्ड</h2>
+<div class="grid">
+<div class="stat">आज की बिक्री<strong id="sales">₹0</strong></div>
+<div class="stat">आज के बिल<strong id="bills">0</strong></div>
+<div class="stat">कुल प्रोडक्ट<strong id="count">0</strong></div>
+</div>
+</div>
+<div class="panel">
+<h2>हाल के बिल</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>बिल नंबर</th><th>ग्राहक</th><th>कर्मचारी</th><th>राशि</th></tr></thead>
+<tbody id="recent"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="billing" class="screen hidden">
+<div class="panel">
+<h2>नया बिल बनाएँ</h2>
+<div class="grid">
+<div><label>कर्मचारी का नाम</label><input id="employee" placeholder="कर्मचारी का नाम"></div>
+<div><label>ग्राहक का नाम</label><input id="customer" placeholder="ग्राहक का नाम"></div>
+<div><label>मोबाइल नंबर</label><input id="phone" placeholder="ग्राहक का मोबाइल"></div>
+<div><label>भुगतान</label><select id="payment"><option>Cash</option><option>UPI</option><option>Card</option><option>Credit</option></select></div>
+</div>
+<h3>प्रोडक्ट जोड़ें</h3>
+<div class="grid">
+<div><label>प्रोडक्ट का नाम या बारकोड</label><input id="productName"></div>
+<div><label>मात्रा</label><input id="quantity" type="number" min="1" value="1"></div>
+</div>
+<button onclick="addProductToBill()">प्रोडक्ट जोड़ें</button>
+<div class="tablewrap"><table>
+<thead><tr><th>प्रोडक्ट</th><th>कीमत</th><th>मात्रा</th><th>कुल</th></tr></thead>
+<tbody id="cart"></tbody>
+</table></div>
+<h3>कुल: <span id="total">₹0.00</span></h3>
+<button onclick="saveBill()">बिल सेव करें</button>
+<button onclick="window.print()">बिल प्रिंट करें</button>
+</div>
+</section>
+
+<section id="products" class="screen hidden">
+<div class="panel">
+<h2>प्रोडक्ट मैनेजमेंट</h2>
+<div class="grid">
+<div><label>नाम</label><input id="pname"></div>
+<div><label>बारकोड</label><input id="barcode"></div>
+<div><label>कीमत</label><input id="price" type="number" min="0.01" step="0.01"></div>
+<div><label>स्टॉक</label><input id="stock" type="number" min="0"></div>
+</div>
+<button onclick="saveProduct()">प्रोडक्ट सेव करें</button>
+<div class="tablewrap"><table>
+<thead><tr><th>नाम</th><th>बारकोड</th><th>कीमत</th><th>स्टॉक</th></tr></thead>
+<tbody id="productTable"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="customers" class="screen hidden">
+<div class="panel">
+<h2>ग्राहक की खरीदारी हिस्ट्री</h2>
+<input id="searchCustomer" placeholder="नाम या मोबाइल नंबर" oninput="customerHistory()">
+<div class="tablewrap"><table>
+<thead><tr><th>ग्राहक</th><th>मोबाइल</th><th>बिल</th><th>कुल खरीदारी</th></tr></thead>
+<tbody id="customerTable"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="reports" class="screen hidden">
+<div class="panel">
+<h2>बिक्री रिपोर्ट</h2>
+<button onclick="report()">रिपोर्ट देखें</button>
+<button onclick="downloadReport()">CSV डाउनलोड</button>
+<div id="reportTotal"></div>
+<div class="tablewrap"><table>
+<thead><tr><th>बिल</th><th>ग्राहक</th><th>कर्मचारी</th><th>राशि</th><th>तारीख</th></tr></thead>
+<tbody id="reportTable"></tbody>
+</table></div>
+</div>
+</section>
+
+<section id="activity" class="screen hidden">
+<div class="panel">
+<h2>कर्मचारी गतिविधि रिकॉर्ड</h2>
+<p>इस सेक्शन में दर्ज की गई गतिविधियाँ दिखाई देंगी। वास्तविक पहचान और सुरक्षित ऑडिट के लिए सर्वर लॉगिन आवश्यक है।</p>
+<div class="tablewrap"><table>
+<thead><tr><th>समय</th><th>कर्मचारी</th><th>काम</th></tr></thead>
+<tbody id="activityTable"></tbody>
+</table></div>
+</div>
+</section>
+</main>
+
+<script>
+const KEY='smartBillingPro';
+let data;
+let cart=[];
+
+function init(){
+ try{data=JSON.parse(localStorage.getItem(KEY))||{};}catch(e){data={};}
+ data.products=Array.isArray(data.products)?data.products:[];
+ data.bills=Array.isArray(data.bills)?data.bills:[];
+ data.activities=Array.isArray(data.activities)?data.activities:[];
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));}
+function msg(t){document.getElementById('notice').textContent=t;}
+function money(n){return '₹'+Number(n).toFixed(2);}
+function safe(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function log(work,who){
+ data.activities.unshift({time:new Date().toLocaleString(),who,work});
+ save();
+}
+function page(id){
+ document.querySelectorAll('.screen').forEach(x=>x.classList.add('hidden'));
+ document.getElementById(id).classList.remove('hidden');
+ if(id==='home')dashboard();
+ if(id==='products')renderProducts();
+ if(id==='customers')customerHistory();
+ if(id==='reports')report();
+ if(id==='activity')renderActivity();
+}
+function saveProduct(){
+ let name=document.getElementById('pname').value.trim();
+ let barcode=document.getElementById('barcode').value.trim();
+ let price=Number(document.getElementById('price').value);
+ let stock=Number(document.getElementById('stock').value);
+ if(!name||!Number.isFinite(price)||price<=0||!Number.isInteger(stock)||stock<0){msg('सही प्रोडक्ट, कीमत और स्टॉक भरें।');return;}
+ if(barcode&&data.products.some(p=>p.barcode===barcode)){msg('यह बारकोड पहले से मौजूद है।');return;}
+ data.products.push({id:crypto.randomUUID(),name,barcode,price,stock});
+ log('प्रोडक्ट जोड़ा: '+name,document.getElementById('employee').value||'नाम दर्ज नहीं');
+ save();renderProducts();dashboard();msg('प्रोडक्ट सेव हो गया।');
+}
+function renderProducts(){
+ document.getElementById('productTable').innerHTML=data.products.map(p=>`<tr><td>${safe(p.name)}</td><td>${safe(p.barcode)}</td><td>${money(p.price)}</td><td>${p.stock}</td></tr>`).join('');
+}
+function addProductToBill(){
+ let q=document.getElementById('productName').value.trim().toLowerCase();
+ let qty=Number(document.getElementById('quantity').value);
+ let p=data.products.find(p=>p.name.toLowerCase()===q||String(p.barcode).toLowerCase()===q);
+ if(!p){msg('प्रोडक्ट नहीं मिला। पहले उसे प्रोडक्ट सेक्शन में जोड़ें।');return;}
+ if(!Number.isInteger(qty)||qty<1){msg('मात्रा सही भरें।');return;}
+ let existing=cart.find(x=>x.id===p.id);
+ if(qty+(existing?.qty||0)>p.stock){msg('स्टॉक पर्याप्त नहीं है।');return;}
+ if(existing)existing.qty+=qty;else cart.push({...p,qty});
+ document.getElementById('productName').value='';
+ drawCart();
+}
+function drawCart(){
+ document.getElementById('cart').innerHTML=cart.map(p=>`<tr><td>${safe(p.name)}</td><td>${money(p.price)}</td><td>${p.qty}</td><td>${money(p.price*p.qty)}</td></tr>`).join('');
+ document.getElementById('total').textContent=money(cart.reduce((s,p)=>s+p.price*p.qty,0));
+}
+function saveBill(){
+ const employee=document.getElementById('employee').value.trim();
+ const customer=document.getElementById('customer').value.trim();
+ const phone=document.getElementById('phone').value.trim();
+ if(!employee||!customer||!phone||!cart.length){msg('कर्मचारी, ग्राहक, मोबाइल और प्रोडक्ट भरें।');return;}
+ for(let x of cart){let p=data.products.find(p=>p.id===x.id);if(!p||p.stock<x.qty){msg('स्टॉक दोबारा जाँचें।');return;}}
+ let bill={id:'BILL-'+Date.now(),time:new Date().toISOString(),employee,customer,phone,payment:document.getElementById('payment').value,items:cart.map(x=>({...x})),total:cart.reduce((s,p)=>s+p.price*p.qty,0)};
+ cart.forEach(x=>data.products.find(p=>p.id===x.id).stock-=x.qty);
+ data.bills.unshift(bill);
+ log('बिल बनाया: '+bill.id,employee);
+ save();cart=[];drawCart();dashboard();msg('बिल सेव हो गया: '+bill.id);
+}
+function dashboard(){
+ let today=new Date().toLocaleDateString();
+ let bills=data.bills.filter(b=>new Date(b.time).toLocaleDateString()===today);
+ document.getElementById('sales').textContent=money(bills.reduce((s,b)=>s+b.total,0));
+ document.getElementById('bills').textContent=bills.length;
+ document.getElementById('count').textContent=data.products.length;
+ document.getElementById('recent').innerHTML=data.bills.slice(0,10).map(b=>`<tr><td>${safe(b.id)}</td><td>${safe(b.customer)}</td><td>${safe(b.employee)}</td><td>${money(b.total)}</td></tr>`).join('');
+}
+function customerHistory(){
+ let q=(document.getElementById('searchCustomer').value||'').toLowerCase();
+ let map={};
+ data.bills.forEach(b=>{
+  if(!map[b.phone])map[b.phone]={name:b.customer,phone:b.phone,count:0,total:0};
+  map[b.phone].count++;map[b.phone].total+=b.total;map[b.phone].name=b.customer;
+ });
+ document.getElementById('customerTable').innerHTML=Object.values(map).filter(c=>(c.name+' '+c.phone).toLowerCase().includes(q)).map(c=>`<tr><td>${safe(c.name)}</td><td>${safe(c.phone)}</td><td>${c.count}</td><td>${money(c.total)}</td></tr>`).join('');
+}
+function report(){
+ document.getElementById('reportTotal').textContent='कुल बिक्री: '+money(data.bills.reduce((s,b)=>s+b.total,0));
+ document.getElementById('reportTable').innerHTML=data.bills.map(b=>`<tr><td>${safe(b.id)}</td><td>${safe(b.customer)}</td><td>${safe(b.employee)}</td><td>${money(b.total)}</td><td>${new Date(b.time).toLocaleString()}</td></tr>`).join('');
+}
+function renderActivity(){
+ document.getElementById('activityTable').innerHTML=data.activities.map(a=>`<tr><td>${safe(a.time)}</td><td>${safe(a.who)}</td><td>${safe(a.work)}</td></tr>`).join('');
+}
+function downloadReport(){
+ let rows=[['Bill','Customer','Phone','Employee','Payment','Total','Date'],...data.bills.map(b=>[b.id,b.customer,b.phone,b.employee,b.payment,b.total,b.time])];
+ let csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+ let a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}));a.download='sales.csv';a.click();
+}
+init();dashboard();drawCart();
+</script>
+</body>
+</html>
